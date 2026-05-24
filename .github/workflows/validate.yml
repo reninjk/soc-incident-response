@@ -1,0 +1,72 @@
+name: Validate SOC Documentation
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  lint-markdown:
+    name: Lint Markdown Files
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      - name: Lint all markdown files
+        run: markdownlint '**/*.md' --ignore node_modules
+
+  check-links:
+    name: Check Internal Links
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check markdown links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          use-verbose-mode: 'no'
+          config-file: '.github/mlc_config.json'
+          folder-path: '.'
+          file-extension: '.md'
+
+  validate-templates:
+    name: Validate Template Structure
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check required folders exist
+        run: |
+          echo "Checking required SOC IR folders..."
+          test -d playbooks || (echo "ERROR: playbooks/ folder missing" && exit 1)
+          test -d runbooks  || (echo "ERROR: runbooks/ folder missing" && exit 1)
+          test -d templates || (echo "ERROR: templates/ folder missing" && exit 1)
+          echo "All required folders present."
+
+      - name: Check required files exist
+        run: |
+          echo "Checking required template files..."
+          test -f templates/incident-report-template.md || (echo "ERROR: incident-report-template.md missing" && exit 1)
+          echo "All required files present."
+
+      - name: Count playbooks
+        run: |
+          COUNT=$(find playbooks -name "*.md" | wc -l)
+          echo "Playbooks found: $COUNT"
+          if [ "$COUNT" -lt 1 ]; then
+            echo "ERROR: No playbooks found in playbooks/"
+            exit 1
+          fi
