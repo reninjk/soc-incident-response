@@ -1,0 +1,99 @@
+name: 🚨 Incident Declaration
+description: Declare a new security incident
+title: "[INCIDENT] "
+labels: ["incident", "triage"]
+assignees: ["reninjk"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - "P1 — Critical (Ransomware / Active Breach / Data Exfiltration)"
+        - "P2 — High (Account Compromise / Malware Spread)"
+        - "P3 — Medium (Phishing / Single Endpoint)"
+        - "P4 — Low (Policy Violation / Suspicious Activity)"
+    validations:
+      required: true
+
+  - type: input
+    id: detection-time
+    attributes:
+      label: Detection Date/Time (UTC)
+      placeholder: "2026-01-15 14:32 UTC"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: incident-type
+    attributes:
+      label: Incident Type
+      options:
+        - Ransomware
+        - Data Exfiltration
+        - Account Compromise
+        - Phishing
+        - Malware / Endpoint Compromise
+        - Insider Threat
+        - DDoS
+        - Vulnerability Exploitation
+        - Unauthorised Access
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Incident Description
+      description: What happened? What systems/accounts are affected?
+      placeholder: "Brief description of the incident..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: affected-assets
+    attributes:
+      label: Affected Assets
+      description: Hostnames, IPs, user accounts, services
+      placeholder: |
+        - Host: DESKTOP-ABC123
+        - User: john.doe@company.com
+        - Service: SharePoint Online
+    validations:
+      required: true
+
+  - type: textarea
+    id: iocs
+    attributes:
+      label: Known IOCs
+      description: IPs, domains, hashes, email addresses observed
+      placeholder: |
+        - IP: 185.220.101.x
+        - Hash: abc123...
+        - Domain: malicious.example.com
+
+  - type: input
+    id: playbook
+    attributes:
+      label: Playbook Being Used
+      placeholder: "e.g. playbooks/ransomware-response.md"
+
+  - type: input
+    id: incident-commander
+    attributes:
+      label: Incident Commander
+      placeholder: "@username"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: notifications
+    attributes:
+      label: Notifications Sent
+      options:
+        - label: SOC Manager notified
+        - label: CISO notified (P1/P2 only)
+        - label: Affected user/owner notified
+        - label: IT Operations notified
+        - label: Legal notified (if data involved)
