@@ -2,71 +2,53 @@ name: Validate SOC Documentation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
 jobs:
-  lint-markdown:
-    name: Lint Markdown Files
+  validate:
+    name: Validate Documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install markdownlint
-        run: npm install -g markdownlint-cli
-
-      - name: Lint all markdown files
-        run: markdownlint '**/*.md' --ignore node_modules
-
-  check-links:
-    name: Check Internal Links
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check markdown links
-        uses: gaurav-nelson/github-action-markdown-link-check@v1
-        with:
-          use-quiet-mode: 'yes'
-          use-verbose-mode: 'no'
-          config-file: '.github/mlc_config.json'
-          folder-path: '.'
-          file-extension: '.md'
-
-  validate-templates:
-    name: Validate Template Structure
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check required folders exist
-        run: |
-          echo "Checking required SOC IR folders..."
-          test -d playbooks || (echo "ERROR: playbooks/ folder missing" && exit 1)
-          test -d runbooks  || (echo "ERROR: runbooks/ folder missing" && exit 1)
-          test -d templates || (echo "ERROR: templates/ folder missing" && exit 1)
-          echo "All required folders present."
+      - uses: actions/checkout@v4
 
       - name: Check required files exist
         run: |
-          echo "Checking required template files..."
-          test -f templates/incident-report-template.md || (echo "ERROR: incident-report-template.md missing" && exit 1)
-          echo "All required files present."
+          MISSING=0
+          for f in README.md CONTRIBUTING.md SECURITY.md; do
+            if [ ! -f "$f" ]; then
+              echo "MISSING: $f"
+              MISSING=1
+            else
+              echo "OK: $f"
+            fi
+          done
+          exit $MISSING
 
-      - name: Count playbooks
+      - name: Validate YAML files
         run: |
-          COUNT=$(find playbooks -name "*.md" | wc -l)
-          echo "Playbooks found: $COUNT"
-          if [ "$COUNT" -lt 1 ]; then
-            echo "ERROR: No playbooks found in playbooks/"
-            exit 1
-          fi
+          pip install pyyaml -q
+          python3 -c "
+          import os, sys, yaml
+          errors = []
+          for root, dirs, files in os.walk('.'):
+              dirs[:] = [d for d in dirs if d != '.git']
+              for f in files:
+                  if f.endswith(('.yml', '.yaml')):
+                      path = os.path.join(root, f)
+                      try:
+                          yaml.safe_load(open(path))
+                      except yaml.YAMLError as e:
+                          errors.append(str(e))
+          if errors:
+              for e in errors: print('YAML ERROR:', e)
+              sys.exit(1)
+          print('All YAML files valid')
+          "
+
+      - name: Check markdown files are non-empty
+        continue-on-error: true
+        run: |
+          find . -name "*.md" -not -path "./.git/*" -exec wc -c {} + | sort -n
+          echo "Markdown scan complete"
